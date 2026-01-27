@@ -1,6 +1,6 @@
 # Digital Personal Library
 
-A web application for managing a personal digital book collection. Built as my thesis project at the University of Piraeus (Department of Computer Science).
+A web application for managing a personal digital book collection. Built as my thesis project at the University of Piraeus (Department of Informatics).
 
 The app lets users upload and read PDF books, take notes and highlights while reading, organize books with categories and tags, and get personalized book recommendations via the Google Books API.
 
