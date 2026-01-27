@@ -1,0 +1,30 @@
+# Dependencies
+node_modules/
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Uploaded files (test data)
+backend/uploads/books/*
+backend/uploads/covers/*
+!backend/uploads/books/.gitkeep
+!backend/uploads/covers/.gitkeep
+
+# Build folders
+frontend/build/
+dist/
+
+# IDE
+.vscode/
+.idea/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+npm-debug.log*
+frontend/Στιγμιότυπο οθόνης 2025-11-06 100847.png

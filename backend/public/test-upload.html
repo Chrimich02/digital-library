@@ -1,0 +1,403 @@
+<!DOCTYPE html>
+<html lang="el">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Digital Library - API Test</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            overflow: hidden;
+        }
+        .header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 30px;
+            text-align: center;
+        }
+        .header h1 { font-size: 2em; margin-bottom: 10px; }
+        .header p { opacity: 0.9; }
+        .section {
+            padding: 30px;
+            border-bottom: 1px solid #eee;
+        }
+        .section:last-child { border-bottom: none; }
+        .section h2 {
+            color: #667eea;
+            margin-bottom: 20px;
+            font-size: 1.5em;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            color: #555;
+            font-weight: 600;
+        }
+        input, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+        input:focus, textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+        textarea {
+            resize: vertical;
+            min-height: 80px;
+        }
+        button {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            padding: 12px 30px;
+            border-radius: 8px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+            width: 100%;
+        }
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 20px rgba(102, 126, 234, 0.4);
+        }
+        button:active {
+            transform: translateY(0);
+        }
+        button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 8px;
+            max-height: 400px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+            word-wrap: break-word;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+            display: none;
+        }
+        #result.show { display: block; }
+        #result.success {
+            background: #d4edda;
+            color: #155724;
+            border: 2px solid #c3e6cb;
+        }
+        #result.error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 2px solid #f5c6cb;
+        }
+        .token-display {
+            background: #e9ecef;
+            padding: 10px;
+            border-radius: 8px;
+            margin-top: 10px;
+            font-family: 'Courier New', monospace;
+            font-size: 11px;
+            word-break: break-all;
+            display: none;
+        }
+        .token-display.show { display: block; }
+        .file-input-wrapper {
+            position: relative;
+            overflow: hidden;
+            display: inline-block;
+            width: 100%;
+        }
+        .file-input-wrapper input[type=file] {
+            position: absolute;
+            left: -9999px;
+        }
+        .file-input-label {
+            display: block;
+            padding: 12px;
+            background: #f8f9fa;
+            border: 2px dashed #667eea;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+        .file-input-label:hover {
+            background: #e9ecef;
+        }
+        .file-name {
+            margin-top: 10px;
+            font-size: 12px;
+            color: #667eea;
+            font-weight: 600;
+        }
+        .stats {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 15px;
+            margin-top: 20px;
+        }
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+        }
+        .stat-card h3 { font-size: 2em; margin-bottom: 5px; }
+        .stat-card p { opacity: 0.9; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>📚 Digital Library</h1>
+            <p>API Testing Interface</p>
+        </div>
+
+        <!-- Login Section -->
+        <div class="section">
+            <h2>🔐 Step 1: Login</h2>
+            <div class="form-group">
+                <label for="email">Email</label>
+                <input type="email" id="email" placeholder="test@example.com" value="test@example.com">
+            </div>
+            <div class="form-group">
+                <label for="password">Password</label>
+                <input type="password" id="password" placeholder="Enter password" value="123456">
+            </div>
+            <button onclick="login()">🔑 Login</button>
+            <div id="tokenDisplay" class="token-display"></div>
+        </div>
+
+        <!-- Upload Section -->
+        <div class="section">
+            <h2>📤 Step 2: Upload Book</h2>
+            <div class="form-group">
+                <label>Book File (PDF, EPUB, MOBI, TXT, DOC, DOCX)</label>
+                <div class="file-input-wrapper">
+                    <input type="file" id="bookFile" accept=".pdf,.epub,.mobi,.txt,.doc,.docx" onchange="displayFileName()">
+                    <label for="bookFile" class="file-input-label">
+                        📁 Click to select book file
+                    </label>
+                </div>
+                <div id="fileName" class="file-name"></div>
+            </div>
+            <div class="form-group">
+                <label for="title">Title *</label>
+                <input type="text" id="title" placeholder="Book title" value="Test Book">
+            </div>
+            <div class="form-group">
+                <label for="author">Author</label>
+                <input type="text" id="author" placeholder="Author name" value="Test Author">
+            </div>
+            <div class="form-group">
+                <label for="description">Description</label>
+                <textarea id="description" placeholder="Book description">This is a test book for the digital library system.</textarea>
+            </div>
+            <div class="form-group">
+                <label for="language">Language</label>
+                <input type="text" id="language" placeholder="Language code (e.g., el, en)" value="el">
+            </div>
+            <div class="form-group">
+                <label for="pageCount">Page Count</label>
+                <input type="number" id="pageCount" placeholder="Number of pages" value="100">
+            </div>
+            <button onclick="uploadBook()" id="uploadBtn">📤 Upload Book</button>
+        </div>
+
+        <!-- Get Books Section -->
+        <div class="section">
+            <h2>📖 Step 3: Get Books</h2>
+            <button onclick="getBooks()">📚 Get My Books</button>
+            <div class="stats" id="stats"></div>
+        </div>
+
+        <!-- Result Section -->
+        <div class="section">
+            <h2>📋 Response</h2>
+            <div id="result"></div>
+        </div>
+    </div>
+
+    <script>
+        let token = '';
+        const API_URL = 'http://localhost:5000/api';
+
+        function showResult(message, isSuccess = true) {
+            const resultDiv = document.getElementById('result');
+            resultDiv.textContent = message;
+            resultDiv.className = 'show ' + (isSuccess ? 'success' : 'error');
+        }
+
+        function displayFileName() {
+            const fileInput = document.getElementById('bookFile');
+            const fileNameDiv = document.getElementById('fileName');
+            if (fileInput.files.length > 0) {
+                fileNameDiv.textContent = '✅ Selected: ' + fileInput.files[0].name;
+            }
+        }
+
+        async function login() {
+            const email = document.getElementById('email').value;
+            const password = document.getElementById('password').value;
+
+            if (!email || !password) {
+                showResult('❌ Please enter email and password', false);
+                return;
+            }
+
+            try {
+                showResult('🔄 Logging in...', true);
+                
+                const response = await fetch(`${API_URL}/auth/login`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ email, password })
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    token = data.data.token;
+                    const tokenDisplay = document.getElementById('tokenDisplay');
+                    tokenDisplay.textContent = '✅ Token: ' + token.substring(0, 50) + '...';
+                    tokenDisplay.className = 'token-display show';
+                    
+                    showResult(`✅ Login Successful!\n\nUser: ${data.data.user.username}\nEmail: ${data.data.user.email}\n\nYou can now upload books!`, true);
+                } else {
+                    showResult('❌ Login Failed: ' + data.message, false);
+                }
+            } catch (error) {
+                showResult('❌ Error: ' + error.message, false);
+            }
+        }
+
+        async function uploadBook() {
+            if (!token) {
+                showResult('❌ Please login first!', false);
+                return;
+            }
+
+            const fileInput = document.getElementById('bookFile');
+            const title = document.getElementById('title').value;
+
+            if (!fileInput.files[0]) {
+                showResult('❌ Please select a book file!', false);
+                return;
+            }
+
+            if (!title) {
+                showResult('❌ Please enter a book title!', false);
+                return;
+            }
+
+            const formData = new FormData();
+            formData.append('book', fileInput.files[0]);
+            formData.append('title', title);
+            formData.append('author', document.getElementById('author').value);
+            formData.append('description', document.getElementById('description').value);
+            formData.append('language', document.getElementById('language').value);
+            formData.append('pageCount', document.getElementById('pageCount').value);
+
+            try {
+                showResult('🔄 Uploading book...', true);
+                const uploadBtn = document.getElementById('uploadBtn');
+                uploadBtn.disabled = true;
+                uploadBtn.textContent = '⏳ Uploading...';
+
+                const response = await fetch(`${API_URL}/books`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    },
+                    body: formData
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    showResult(`✅ Book Uploaded Successfully!\n\n${JSON.stringify(data, null, 2)}`, true);
+                    // Reset form
+                    document.getElementById('bookFile').value = '';
+                    document.getElementById('fileName').textContent = '';
+                } else {
+                    showResult('❌ Upload Failed: ' + data.message, false);
+                }
+
+                uploadBtn.disabled = false;
+                uploadBtn.textContent = '📤 Upload Book';
+            } catch (error) {
+                showResult('❌ Error: ' + error.message, false);
+                document.getElementById('uploadBtn').disabled = false;
+                document.getElementById('uploadBtn').textContent = '📤 Upload Book';
+            }
+        }
+
+        async function getBooks() {
+            if (!token) {
+                showResult('❌ Please login first!', false);
+                return;
+            }
+
+            try {
+                showResult('🔄 Loading books...', true);
+
+                const response = await fetch(`${API_URL}/books`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': 'Bearer ' + token
+                    }
+                });
+
+                const data = await response.json();
+
+                if (data.success) {
+                    const books = data.data.books;
+                    const statsHtml = `
+                        <div class="stat-card">
+                            <h3>${books.length}</h3>
+                            <p>Total Books</p>
+                        </div>
+                        <div class="stat-card">
+                            <h3>${data.data.pagination.total}</h3>
+                            <p>In Library</p>
+                        </div>
+                    `;
+                    document.getElementById('stats').innerHTML = statsHtml;
+                    
+                    showResult(`✅ Books Loaded Successfully!\n\n${JSON.stringify(data, null, 2)}`, true);
+                } else {
+                    showResult('❌ Failed to load books: ' + data.message, false);
+                }
+            } catch (error) {
+                showResult('❌ Error: ' + error.message, false);
+            }
+        }
+
+        // Auto-login on page load for convenience
+        window.addEventListener('load', () => {
+            console.log('🚀 Digital Library Test Page Loaded');
+        });
+    </script>
+</body>
+</html>
