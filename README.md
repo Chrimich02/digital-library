@@ -43,7 +43,7 @@ Installation
 
 Clone the repo
 
-bashgit clone https://github.com/yourusername/digital-library.git
+bashgit clone https://github.com/Chrimich02/digital-library.git
 cd digital-library
 
 Create the database
