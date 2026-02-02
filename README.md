@@ -1,97 +1,133 @@
 # Digital Personal Library
 
-A web application for managing a personal digital book collection. Built as my thesis project at the University of Piraeus (Department of Informatics).
+A full-stack web application for managing personal ebook collections. Built as my Bachelor's thesis at the University of Piraeus.
 
-The app lets users upload and read PDF books, take notes and highlights while reading, organize books with categories and tags, and get personalized book recommendations via the Google Books API.
+The idea came from my own frustration with managing PDFs across different folders and apps. I wanted one place to store books, read them, take notes, and discover new ones.
+
+![Dashboard](screenshots/dashboard.png)
+
+## Features
+
+- Upload and manage PDF books with metadata and cover images
+- Built-in PDF reader with multi-line text highlighting (5 colors)
+- Notes and bookmarks on any page
+- Organize books with categories and tags
+- Automatic reading progress tracking
+- Book recommendations based on your library (via Google Books API)
 
 ## Tech Stack
 
-**Frontend:** React 19, React Router 7, Zustand, Tailwind CSS, React-PDF
+| Layer | Technologies | Why |
+|-------|--------------|-----|
+| Frontend | React 19, Tailwind CSS, Zustand | React for component architecture, Zustand for simple state management without Redux boilerplate |
+| Backend | Node.js, Express 5, Sequelize | JavaScript throughout the stack, Sequelize for type-safe database queries |
+| Database | PostgreSQL | Relational data with complex relationships between books, categories, tags, and annotations |
+| Auth | JWT + bcrypt | Stateless authentication, secure password hashing |
 
-**Backend:** Node.js, Express 5, Sequelize, PostgreSQL
-
-**Other:** JWT authentication, Multer for file uploads, Google Books API
-
-## Main Features
-
-- Upload PDF books (up to 50MB) with cover images
-- Built-in PDF reader with text selection
-- Highlights (5 colors, supports multi-line), notes, and bookmarks
-- Categories and tags for organization
-- Automatic reading progress tracking
-- Book recommendations based on your library
-
-## Project Structure
+## Architecture
 
 ```
-digital-library/
-├── backend/
-│   ├── controllers/    # 9 controllers
-│   ├── models/         # 7 Sequelize models
-│   ├── routes/         # API routes
-│   ├── middleware/     # Auth, error handling
-│   └── uploads/        # PDF and cover storage
-│
-└── frontend/
-    ├── src/
-    │   ├── components/ # Reader components, modals
-    │   ├── pages/      # 8 pages
-    │   ├── services/   # API calls
-    │   └── store/      # Zustand auth store
-    └── tailwind.config.js
+┌──────────────────┐     HTTP/JSON      ┌──────────────────┐
+│                  │    + JWT Auth      │                  │
+│  React Frontend  │◄──────────────────►│  Express API     │
+│  (SPA)           │                    │  (47 endpoints)  │
+│                  │                    │                  │
+└──────────────────┘                    └────────┬─────────┘
+                                                 │
+                                                 │ Sequelize ORM
+                                                 ▼
+                                        ┌──────────────────┐
+                                        │   PostgreSQL     │
+                                        │   (9 tables)     │
+                                        └──────────────────┘
 ```
 
-## Database
+The frontend is a single-page application that communicates with the backend through REST endpoints. All routes except login/register require a valid JWT token.
 
-9 tables total: users, books, categories, tags, annotations, reading_progress, user_preferences, plus two junction tables for the many-to-many relationships (book_categories, book_tags).
+## Database Design
 
-## Setup
+```
+Users
+  │
+  ├── Books ◄───────┬───────► Categories (many-to-many)
+  │     │           │
+  │     │           └───────► Tags (many-to-many)
+  │     │
+  │     ├── Annotations (highlights, notes, bookmarks)
+  │     │
+  │     └── ReadingProgress
+  │
+  └── UserPreferences
+```
 
-### Requirements
+9 tables total: 7 main entities + 2 junction tables for the many-to-many relationships.
 
-- Node.js 18+
-- PostgreSQL 14+
-- Google Books API key (optional, for recommendations)
+## Technical Challenges
 
-### Installation
+### Multi-line Highlighting
 
-1. Clone the repo
+The trickiest part was implementing text highlighting that works across multiple lines. PDF text selection can span several lines, and each line segment needs its own position data for the highlight to render correctly.
+
+Solution: Store an array of position rectangles per highlight:
+```javascript
+{
+  highlightedText: "Text spanning multiple lines...",
+  positions: [
+    { x: 72, y: 300, width: 450, height: 14 },
+    { x: 72, y: 316, width: 380, height: 14 }
+  ],
+  color: "#ffeb3b",
+  pageNumber: 45
+}
+```
+
+The reader then draws a semi-transparent rectangle for each position.
+
+### Recommendation Engine
+
+The system analyzes your library to suggest new books:
+
+1. Count books per category and author
+2. Query Google Books API for similar content
+3. Translate Greek categories to English (e.g., "Επιστήμη" → "Science")
+4. Filter: must have cover image, published after 2010
+5. Deduplicate results by title
+
+Added exponential backoff (500ms → 1s → 2s) to handle API rate limits gracefully.
+
+## Project Stats
+
+- **~8,000** lines of code
+- **47** API endpoints
+- **9** database tables
+- **45** files across frontend and backend
+
+## Screenshots
+
+### PDF Reader
+![Reader](screenshots/reader.png)
+
+Annotations sidebar shows highlights, notes, and bookmarks grouped by page. The reader saves your position automatically.
+
+### Recommendations
+![Recommendations](screenshots/recommendations.png)
+
+Personalized suggestions based on your most-read categories and authors.
+
+## Running Locally
+
+**Requirements:** Node.js 18+, PostgreSQL 14+
 
 ```bash
 git clone https://github.com/Chrimich02/digital-library.git
 cd digital-library
-```
 
-2. Create the database
-
-```bash
+# Database
 createdb digital_library
-```
 
-3. Set up environment variables
-
-Create `backend/.env`:
-
-```
-DB_HOST=localhost
-DB_PORT=5432
-DB_NAME=digital_library
-DB_USER=your_username
-DB_PASSWORD=your_password
-
-JWT_SECRET=your_jwt_secret
-JWT_EXPIRES_IN=7d
-
-PORT=5000
-
-GOOGLE_BOOKS_API_KEY=your_api_key
-```
-
-4. Install and run
-
-```bash
 # Backend
 cd backend
+cp .env.example .env  # Then edit with your DB credentials
 npm install
 npm run dev
 
@@ -101,37 +137,73 @@ npm install
 npm start
 ```
 
-The app runs at http://localhost:3000
+App runs at http://localhost:3000
+
+### Environment Variables
+
+```env
+# backend/.env
+DB_HOST=localhost
+DB_PORT=5432
+DB_NAME=digital_library
+DB_USER=postgres
+DB_PASSWORD=your_password
+
+JWT_SECRET=your_secret_key
+JWT_EXPIRES_IN=7d
+
+PORT=5000
+
+GOOGLE_BOOKS_API_KEY=your_api_key  # Optional, for recommendations
+```
 
 ## API Overview
 
-The backend has 47 endpoints. Main ones:
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| POST | /api/auth/register | Create account |
+| POST | /api/auth/login | Login, get JWT |
+| GET | /api/books | List books (paginated) |
+| POST | /api/books | Upload book (multipart) |
+| GET | /api/books/:id/view | Stream PDF for reader |
+| POST | /api/annotations | Create highlight/note/bookmark |
+| GET | /api/recommendations | Get personalized suggestions |
 
-| Endpoint | Description |
-|----------|-------------|
-| `POST /api/auth/register` | Register |
-| `POST /api/auth/login` | Login |
-| `GET /api/books` | List books |
-| `POST /api/books` | Upload book |
-| `GET /api/books/:id/view` | Get PDF for reader |
-| `POST /api/annotations` | Create highlight/note/bookmark |
-| `GET /api/recommendations` | Get book suggestions |
+Full CRUD available for books, categories, tags, and annotations.
 
-Full CRUD for books, categories, tags, annotations, and reading progress.
+## Project Structure
 
-## Screenshots
+```
+├── backend/
+│   ├── controllers/    # Request handlers (9 files)
+│   ├── models/         # Sequelize models (7 files)
+│   ├── routes/         # API routes
+│   ├── middleware/     # Auth, error handling
+│   └── uploads/        # PDF and cover storage
+│
+└── frontend/
+    └── src/
+        ├── components/ # Reusable UI components
+        ├── pages/      # Route pages (8 files)
+        ├── services/   # API client functions
+        └── store/      # Zustand auth store
+```
 
-![Dashboard](screenshots/dashboard.png)
+## Limitations
 
-![Reader](screenshots/reader.png)
-
-![Recommendations](screenshots/recommendations.png)
-
-## Notes
-
-This was built for my thesis, so there are some limitations:
-
-- Only PDF format is supported in the reader
-- Files are stored locally (no cloud storage)
+- PDF only (no EPUB support yet)
+- Local file storage (no cloud)
 - No automated tests
+- Single-user focus (no sharing features)
 
+## Future Improvements
+
+- EPUB format support
+- Cloud storage integration
+- Full-text search within PDFs
+- Reading statistics dashboard
+- Export annotations to Markdown
+
+---
+
+**University of Piraeus** — Department of Informatics — Bachelor's Thesis 2025
